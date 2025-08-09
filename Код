@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft PE Content Creator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+        }
+        .language-selector select {
+            padding: 5px;
+        }
+        .content-section {
+            margin: 20px 0;
+        }
+        .preview {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            background-color: white;
+        }
+        .auth-section, .history-section, .plans-section {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>Minecraft PE Content Creator</h1>
+        <div class="language-selector">
+            <select id="language" onchange="changeLanguage()">
+                <option value="uk">Українська</option>
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+            </select>
+        </div>
+        <div class="auth-section">
+            <button id="loginBtn">Увійти через Google</button>
+            <button id="logoutBtn" class="hidden">Вийти</button>
+            <span id="userInfo"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="content-section">
+            <h2>Створити контент для Minecraft PE</h2>
+            <select id="contentType">
+                <option value="mod">Мод</option>
+                <option value="addon">Аддон</option>
+                <option value="texture">Текстур-пак</option>
+                <option value="shader">Шейдер</option>
+            </select>
+            <textarea id="contentInput" placeholder="Опишіть, що ви хочете створити (напр., текстура для блоку)"></textarea>
+            <button onclick="generateContent()">Створити</button>
+        </div>
+
+        <div class="preview">
+            <h3>Попередній перегляд</h3>
+            <div id="previewContent">Тут буде відображено попередній перегляд</div>
+        </div>
+
+        <div class="history-section hidden" id="history">
+            <h3>Історія створеного контенту</h3>
+            <ul id="historyList"></ul>
+        </div>
+
+        <div class="plans-section">
+            <h3>Тарифні плани</h3>
+            <div>
+                <h4>Безкоштовний</h4>
+                <p>Основні функції, ліміт 5 генерацій на день</p>
+            </div>
+            <div>
+                <h4>Преміум</h4>
+                <p>Необмежені генерації, підтримка шейдерів, пріоритетна підтримка</p>
+                <button onclick="subscribe()">Підписатися</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Language translations
+        const translations = {
+            uk: {
+                title: "Minecraft PE Content Creator",
+                login: "Увійти через Google",
+                logout: "Вийти",
+                create: "Створити",
+                preview: "Попередній перегляд",
+                history: "Історія створеного контенту",
+                plans: "Тарифні плани",
+                free: "Безкоштовний",
+                premium: "Преміум",
+                subscribe: "Підписатися"
+            },
+            en: {
+                title: "Minecraft PE Content Creator",
+                login: "Sign in with Google",
+                logout: "Sign out",
+                create: "Create",
+                preview: "Preview",
+                history: "History of created content",
+                plans: "Pricing Plans",
+                free: "Free",
+                premium: "Premium",
+                subscribe: "Subscribe"
+            },
+            ru: {
+                title: "Minecraft PE Content Creator",
+                login: "Войти через Google",
+                logout: "Выйти",
+                create: "Создать",
+                preview: "Предпросмотр",
+                history: "История созданного контента",
+                plans: "Тарифные планы",
+                free: "Бесплатный",
+                premium: "Премиум",
+                subscribe: "Подписаться"
+            }
+        };
+
+        // Language change
+        function changeLanguage() {
+            const lang = document.getElementById("language").value;
+            document.querySelector("h1").textContent = translations[lang].title;
+            document.getElementById("loginBtn").textContent = translations[lang].login;
+            document.getElementById("logoutBtn").textContent = translations[lang].logout;
+            document.querySelector(".content-section button").textContent = translations[lang].create;
+            document.querySelector(".preview h3").textContent = translations[lang].preview;
+            document.querySelector(".history-section h3").textContent = translations[lang].history;
+            document.querySelector(".plans-section h3").textContent = translations[lang].plans;
+            document.querySelector(".plans-section div:nth-child(1) h4").textContent = translations[lang].free;
+            document.querySelector(".plans-section div:nth-child(2) h4").textContent = translations[lang].premium;
+            document.querySelector(".plans-section button").textContent = translations[lang].subscribe;
+        }
+
+        // Google Sign-In
+        document.getElementById("loginBtn").addEventListener("click", () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                const user = result.user;
+                document.getElementById("userInfo").textContent = `Вітаємо, ${user.displayName}!`;
+                document.getElementById("loginBtn").classList.add("hidden");
+                document.getElementById("logoutBtn").classList.remove("hidden");
+                document.getElementById("history").classList.remove("hidden");
+                loadHistory(user.uid);
+            }).catch((error) => {
+                console.error("Помилка авторизації:", error);
+            });
+        });
+
+        // Sign out
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            auth.signOut().then(() => {
+                document.getElementById("userInfo").textContent = "";
+                document.getElementById("loginBtn").classList.remove("hidden");
+                document.getElementById("logoutBtn").classList.add("hidden");
+                document.getElementById("history").classList.add("hidden");
+            });
+        });
+
+        // Load user history
+        function loadHistory(uid) {
+            db.collection("userContent").where("userId", "==", uid).get().then((querySnapshot) => {
+                const historyList = document.getElementById("historyList");
+                historyList.innerHTML = "";
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const li = document.createElement("li");
+                    li.textContent = `${data.type}: ${data.description} (${new Date(data.timestamp).toLocaleString()})`;
+                    historyList.appendChild(li);
+                });
+            });
+        }
+
+        // Generate content (placeholder for AI integration)
+        function generateContent() {
+            const contentType = document.getElementById("contentType").value;
+            const description = document.getElementById("contentInput").value;
+            const user = auth.currentUser;
+
+            if (!user) {
+                alert("Будь ласка, увійдіть, щоб створити контент.");
+                return;
+            }
+
+            // Simulate AI generation (replace with actual AI API call)
+            const previewContent = document.getElementById("previewContent");
+            previewContent.textContent = `Створюємо ${contentType} з описом: ${description}`;
+
+            // Save to Firestore
+            db.collection("userContent").add({
+                userId: user.uid,
+                type: contentType,
+                description: description,
+                timestamp: Date.now()
+            }).then(() => {
+                loadHistory(user.uid);
+                // Simulate file generation
+                const fileContent = `MCPE ${contentType} file content based on: ${description}`;
+                const blob = new Blob([fileContent], { type: "application/octet-stream" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `${contentType}.mcpe`;
+                link.click();
+            });
+        }
+
+        // Subscribe to premium (placeholder)
+        function subscribe() {
+            alert("Перенаправлення на сторінку оплати... (Інтеграція з платіжною системою)");
+        }
+    </script>
+</body>
+</html>
